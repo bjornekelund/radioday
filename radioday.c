@@ -14,15 +14,10 @@ int main(int argc, char *argv[])
 	char *sHour = (char *)malloc(2);
 	char *sMinute = (char *)malloc(2);
 	int i;
-	int N, N1, N2, N3;
 	int day = 6, month = 6, year = 2019;
 	double curT = 18.46;
-	double lngHour, longitude, latitude;
-	double Lquadrant, RAquadrant;
-	double t, Hr, Hs, Ts, Tr, L, M, RA, UTs, UTr;
-	double sinDec, cosDec, cosH, zenith;
-	double toR = PI / 180;
-	double toD = 180 / PI;
+	double longitude, latitude;
+	double UTs, UTr;
 	double grayD = 2;
 	double riseDist, setDist;
 	int rs;
@@ -31,6 +26,13 @@ int main(int argc, char *argv[])
 		strlen(argv[1]) != 6 ||
 		((argc == 4) && strlen(argv[3]) != 4)) {
 		printf("Usage: ./radioday GRID [GRAYDURATION] [HHMM] [YYYYMMDD]\n");
+
+		free(sYear);
+		free(sMonth);
+		free(sDay);
+		free(sHour);
+		free(sMinute);
+
 		return 0;
 	}
 
@@ -57,6 +59,8 @@ int main(int argc, char *argv[])
 		month = atoi(sMonth);
 		strncpy(sDay, argv[4] + 6, 2);
 		day = atoi(sDay);
+		printf("sYear=\"%s\", sMonth=\"%s\", sDay=\"%s\"\n", sYear, sMonth, sDay);
+
 	}
 
 //	printf("Current time in decimal: %f\n", curT);
@@ -75,27 +79,37 @@ int main(int argc, char *argv[])
 
 	rs = sun_rise_set(year, month, day, longitude, latitude, &UTr, &UTs);
 
-	setDist = fabs(curT - UTs);
-	setDist = (setDist > 12.0) ? 24 - setDist : setDist;
-	setDist = (setDist <  0.0) ? 24 + setDist : setDist;
+	if (rs == 1)
+		printf("In constant daylight.\n");
+	else if (rs == -1)
+		printf("In constant darkness.\n");
+	else {
+		 // We have a regular sunrise/sunset
+		setDist = fabs(curT - UTs);
+		setDist = (setDist > 12.0) ? 24 - setDist : setDist;
+		setDist = (setDist <  0.0) ? 24 + setDist : setDist;
 
-	riseDist = fabs(curT - UTr);
-	riseDist = (riseDist > 12.0) ? 24 - riseDist : riseDist;
-	riseDist = (riseDist <  0.0) ? 24 + riseDist : riseDist;
+		riseDist = fabs(curT - UTr);
+		riseDist = (riseDist > 12.0) ? 24 - riseDist : riseDist;
+		riseDist = (riseDist <  0.0) ? 24 + riseDist : riseDist;
 
-	printf("Distance to sunrise: %.2f to sunset: %.2f\n", riseDist, setDist);
+		printf("Distance to sunrise: %.2f to sunset: %.2f\n", riseDist, setDist);
+		printf("Sunrise: %02d:%02dZ Sunset: %02d:%02dZ\n", (int)(floor(UTr)), 
+			(int)(60 * (UTr - floor(UTr))),	(int)(floor(UTs)), (int)(60 * (UTs - floor(UTs))));
 
-// 10. convert UT value to local time zone of latitude/longitude
+		if (riseDist < grayD / 2.0 || setDist < grayD / 2.0)
+			printf("In grayline\n");
+		else if (curT > UTr && curT < UTs)
+			printf("In daylight\n");
+		else
+			printf("At night\n");
+	}
 
-	printf("Sunrise: %02d:%02dZ Sunset: %02d:%02dZ\n", (int)(floor(UTr)), 
-		(int)(60 * (UTr - floor(UTr))),	(int)(floor(UTs)), (int)(60 * (UTs - floor(UTs))));
-
-	if (riseDist < grayD / 2.0 || setDist < grayD / 2.0)
-		printf("In grayline\n");
-	else if (curT > UTr && curT < UTs)
-		printf("In daylight\n");
-	else
-		printf("At night\n");
+	free(sYear);
+	free(sMonth);
+	free(sDay);
+	free(sHour);
+	free(sMinute);
 
 	return 0;
 }
