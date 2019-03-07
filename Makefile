@@ -8,4 +8,4 @@ radioday.o : radioday.c sunriset.h
 	gcc -c radioday.c
 
 clean:
-	rm --force *.o
+	rm -f *.o
