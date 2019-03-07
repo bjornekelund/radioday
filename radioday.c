@@ -13,14 +13,17 @@ int main(int argc, char *argv[])
 	char *sDay = (char *)malloc(2);
 	char *sHour = (char *)malloc(2);
 	char *sMinute = (char *)malloc(2);
+	char *state;
 	int i;
 	int day = 6, month = 6, year = 2019;
-	double curT = 18.46;
+	int curT = 18 * 60; // In minutes
 	double longitude, latitude;
-	double UTs, UTr;
-	double grayD = 2;
-	double riseDist, setDist;
+	double UTsH, UTrH; // In hours
+	int normS, normT, UTs, UTr; // In minutes
+	int grayD = 180; // In minutes
+	int dayLen, riseDist, setDist; // In minutes
 	int rs;
+	int verbose = 0;
 
 	if (argc < 2 ||
 		strlen(argv[1]) != 6 ||
@@ -41,14 +44,18 @@ int main(int argc, char *argv[])
 		grid[i] = toupper(argv[1][i]);
 
 //	Fetch grayline duration from command line
-	if (argc > 2)
-		grayD = atof(argv[2]);
+	if (argc > 2) {
+		grayD = (int)(atof(argv[2]) * 60.0);
+		verbose = (grayD < 0);
+		grayD = abs(grayD);
+	}
+
 
 //	Take time from command line if it's there
 	if (argc > 3) {
 		strncpy(sHour, argv[3], 2);
 		strncpy(sMinute, argv[3] + 2, 2);
-		curT = atof(sHour) + atof(sMinute) / 60.;
+		curT = (int)(atof(sHour) * 60 + atof(sMinute));
 	}
 
 //	Take date from command line if it's there
@@ -59,50 +66,62 @@ int main(int argc, char *argv[])
 		month = atoi(sMonth);
 		strncpy(sDay, argv[4] + 6, 2);
 		day = atoi(sDay);
-		printf("sYear=\"%s\", sMonth=\"%s\", sDay=\"%s\"\n", sYear, sMonth, sDay);
-
+		if (verbose)
+			printf("sYear=\"%s\", sMonth=\"%s\", sDay=\"%s\"\n", sYear, sMonth, sDay);
 	}
 
-//	printf("Current time in decimal: %f\n", curT);
-
-
-	printf("Grayline duration in decimal: %.1fh\n", grayD);
-//	printf("Grid locator: %s\n", grid);
-
+	rs = sun_rise_set(year, month, day, longitude, latitude, &UTrH, &UTsH);
 	latitude = (grid[1] - 65) * 10 + (grid[3] - 48) + ((double)grid[5] - 65.) / 24 + 1. / 48 - 90;
 	longitude = (grid[0] - 65) * 20 + (grid[2] - 48) * 2 + ((double)grid[4] - 65.) / 12 + 1. / 24 - 180;
+	UTs = round(60.0 * UTsH);
+	UTr = round(60.0 * UTrH);
 
+	if (verbose) {
+		printf("Current time in decimal: %f\n", curT / 60.0);
+		printf("Grayline duration in decimal: %.1fh\n", grayD / 60.0);
+		printf("Grid locator: %s\n", grid);
+		printf("Latitude = %f deg. Longitude = %f deg. Date: %04d-%02d-%02d\n",
+			latitude, longitude, year, month, day);
+		printf("rs = %d\n", rs);
+	}
 
-	printf("Latitude = %f deg. Longitude = %f deg. Date: %04d-%02d-%02d\n",
-		latitude, longitude, year, month, day);
-
-
-	rs = sun_rise_set(year, month, day, longitude, latitude, &UTr, &UTs);
 
 	if (rs == 1)
-		printf("In constant daylight.\n");
-	else if (rs == -1)
-		printf("In constant darkness.\n");
-	else {
-		 // We have a regular sunrise/sunset
-		setDist = fabs(curT - UTs);
-		setDist = (setDist > 12.0) ? 24 - setDist : setDist;
-		setDist = (setDist <  0.0) ? 24 + setDist : setDist;
-
-		riseDist = fabs(curT - UTr);
-		riseDist = (riseDist > 12.0) ? 24 - riseDist : riseDist;
-		riseDist = (riseDist <  0.0) ? 24 + riseDist : riseDist;
-
-		printf("Distance to sunrise: %.2f to sunset: %.2f\n", riseDist, setDist);
-		printf("Sunrise: %02d:%02dZ Sunset: %02d:%02dZ\n", (int)(floor(UTr)), 
-			(int)(60 * (UTr - floor(UTr))),	(int)(floor(UTs)), (int)(60 * (UTs - floor(UTs))));
-
-		if (riseDist < grayD / 2.0 || setDist < grayD / 2.0)
-			printf("In grayline\n");
-		else if (curT > UTr && curT < UTs)
-			printf("In daylight\n");
+		if (verbose)
+			printf("In constant daylight.\n");
 		else
-			printf("At night\n");
+			printf("day\n");
+	else if (rs == -1)
+		if (verbose)
+			printf("In constant darkness.\n");
+		else
+			printf("night\n");
+	else {
+		dayLen = (UTs - UTr + 1440) % 1440;
+
+		riseDist = (int)(curT - UTr + 2880) % 1440;
+		riseDist = (riseDist > 720) ? 1440 - riseDist : riseDist;
+
+		setDist =  (int)(curT - UTs + 2880) % 1440;
+		setDist = (setDist > 720) ? 1440 - setDist : setDist;
+
+		normT = (curT - UTr + 1440) % 1440;
+
+		if (setDist < grayD / 2.0 || riseDist < grayD / 2.0)
+			state = "gray";
+		else if (normT > 0 && normT < dayLen)
+			state = "day";
+		else
+			state = "night";
+
+		if (!verbose)
+			printf("%s\n", state);
+		else {
+			printf("CurT: %05.2f normT: %5.2f rDist: %05.2f sDist: %05.2f State: %s\n",
+				curT / 60.0, normT / 60.0, riseDist / 60.0, setDist / 60.0, state);
+			printf("Distance to sunrise: %.2f to sunset: %.2f\n", riseDist / 60.0, setDist / 60.0);
+			printf("Sunrise: %5.2f Sunset: %5.2f\n", UTrH, UTsH);
+		}
 	}
 
 	free(sYear);
