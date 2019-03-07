@@ -3,5 +3,5 @@ A small utility returning the radio propagation state ("day", "night", "gray") f
 
 Intended use:
 
-`cp receiver-config-\`./radioday jo65mr\`.cfg receiver-config.cfg`
+```cp radio-config-`./radioday jo65mr`.cfg radio-config.cfg```
 
