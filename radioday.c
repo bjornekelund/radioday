@@ -8,30 +8,31 @@
 
 int main(int argc, char *argv[])
 {
-	char grid[6];
+	char grid[6], *state;
 	char *sYear = (char *)malloc(4);
 	char *sMonth = (char *)malloc(2);
 	char *sDay = (char *)malloc(2);
 	char *sHour = (char *)malloc(2);
 	char *sMinute = (char *)malloc(2);
-	char *state;
-	int i;
-	int day = 6, month = 6, year = 2019;
-	int curT = 18 * 60; // In minutes
-	double longitude, latitude;
+	int i, day, month, year;
+	double longitude, latitude; // In decimal
 	double UTsH, UTrH; // In hours
-	int normS, normT, UTs, UTr; // In minutes
-	int grayD = 180; // In minutes
-	int dayLen, riseDist, setDist; // In minutes
+	int dayLen, riseDist, setDist, curT, normS, normT, UTs, UTr; // In minutes
+	int grayD = 120; // In minutes, default 2h
 	int rs; // Status from sunset/sunrise calculation
-	int verbose = 0;
+	int verbose = 0; // Set true with negative grayline duration
 	time_t rawtime;
 	struct tm *info;
 
 	if (argc < 2 ||
 		strlen(argv[1]) != 6 ||
 		((argc == 4) && strlen(argv[3]) != 4)) {
-		printf("Usage: ./radioday GRID [GRAYDURATION] [HHMM] [YYYYMMDD]\n");
+		printf("%s\n%s\n%s\n%s\n%s\n",
+			"Usage: ./radioday GRID6 [GRAYDURATION] [HHMM] [YYYYMMDD]",
+			"       GRID6 = Maidenhead grid locator, six positions",
+			"       GRAYDURATION = Duration of twilight in decimal hours. Negative value enables verbose mode",
+			"       HHMM = Time in hours and minutes",
+			"       YYYYMMDD = Date in year, month, and day of month");
 
 		free(sYear);
 		free(sMonth);
@@ -53,6 +54,7 @@ int main(int argc, char *argv[])
 		grayD = abs(grayD);
 	}
 
+	// Get current system time and date in UTC
 	time(&rawtime);
 	info = gmtime(&rawtime);
 	year = info->tm_year + 1900;
@@ -60,14 +62,14 @@ int main(int argc, char *argv[])
 	day = info->tm_mday;
 	curT = info->tm_hour * 60 + info->tm_min;
 
-//	Take time from command line if it's there
+//	Replace with time from command line if it's there
 	if (argc > 3) {
 		strncpy(sHour, argv[3], 2);
 		strncpy(sMinute, argv[3] + 2, 2);
 		curT = (int)(atof(sHour) * 60 + atof(sMinute));
 	}
 
-//	Take date from command line if it's there
+//	Take date from command line if supplied
 	if (argc > 4) {
 		strncpy(sYear, argv[4], 4);
 		year = atoi(sYear);
@@ -77,11 +79,14 @@ int main(int argc, char *argv[])
 		day = atoi(sDay);
 	}
 
+	// Calculate latitude and longitude from six-position grid locator
 	latitude = (grid[1] - 65) * 10 + (grid[3] - 48) + ((double)grid[5] - 65.) / 24 + 1. / 48 - 90;
 	longitude = (grid[0] - 65) * 20 + (grid[2] - 48) * 2 + ((double)grid[4] - 65.) / 12 + 1. / 24 - 180;
 
+	// Call library function for sunrise and sunset times
 	rs = sun_rise_set(year, month, day, longitude, latitude, &UTrH, &UTsH);
 
+	// Convert hours to minutes to simplify modulo arithmetic
 	UTs = round(60.0 * UTsH);
 	UTr = round(60.0 * UTrH);
 
@@ -90,23 +95,23 @@ int main(int argc, char *argv[])
 			(int)(curT / 60.0), (int)round(60 * (curT / 60.0 - floor(curT / 60.0))));
 		printf("Twilight duration: %.2fh\n", grayD / 60.0);
 		printf("Grid locator: %s ==> ", grid);
-		printf("Latitude = %.4f deg. Longitude = %.4f deg.\n", latitude, longitude);
+		printf("Latitude: %.4f deg. Longitude: %.4f deg.\n", latitude, longitude);
 	}
 
 
 	if (rs == 1)
 		if (verbose)
-			printf("In constant daylight.\n");
+			printf("In constant daylight.\nSolar state: day\n");
 		else
 			printf("day\n");
 	else if (rs == -1)
 		if (verbose)
-			printf("In constant darkness.\n");
+			printf("In constant darkness.\nSolar state: night\n");
 		else
 			printf("night\n");
 	else {
 		if (verbose)
-			printf("Normal day/night cycle.\n");
+			printf("Normal day/night cycle. ");
 
 		dayLen = (UTs - UTr + 1440) % 1440;
 
