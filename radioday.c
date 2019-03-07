@@ -27,12 +27,12 @@ int main(int argc, char *argv[])
 	if (argc < 2 ||
 		strlen(argv[1]) != 6 ||
 		((argc == 4) && strlen(argv[3]) != 4)) {
-		printf("%s\n%s\n%s\n%s\n%s\n",
-			"Usage: ./radioday GRID6 [GRAYDURATION] [HHMM] [YYYYMMDD]",
-			"       GRID6 = Maidenhead grid locator, six positions",
-			"       GRAYDURATION = Duration of twilight in decimal hours. Negative value enables verbose mode",
-			"       HHMM = Time in hours and minutes",
-			"       YYYYMMDD = Date in year, month, and day of month");
+		printf("Usage: ./radioday GRID6 [GRAYDURATION] [HHMM] [YYYYMMDD]\n");
+		printf("       GRID6 = Maidenhead grid locator, six positions\n");
+		printf("       GRAYDURATION = Duration of twilight in decimal hours.\n");
+		printf("           Defaults to 2h. Negative value enables verbose mode.\n");
+		printf("       HHMM = Time in hours and minutes.\n");
+		printf("       YYYYMMDD = Date in year, month, and day of month.\n");
 
 		free(sYear);
 		free(sMonth);
