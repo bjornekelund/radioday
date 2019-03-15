@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
   int i, day, month, year;
   double longitude, latitude; // In decimal
   double UTsH, UTrH; // In hours
-  int dayLen, riseDist, setDist, curT, normS, normT, UTs, UTr; // In minutes
+  int dayLen, riseDist, setDist, curT, normT, UTs, UTr; // In minutes
   int grayD = 120; // In minutes, default 2h
   int rs; // Status from sunset/sunrise calculation
   int verbose = 0; // Set true with negative grayline duration
