@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     printf("Usage: ./radioday <6 position grid> [Twilight duration] [HHMM] [YYYYMMDD]\n");
     printf("       Twilight duration in decimal hours, default is 2.0\n");
     printf("       A negative value enables verbose mode.\n");
-    printf("       HHMM = Simulated time in hours and minutes.\n");
+    printf("       HHMM = Simulated UTC time in hours and minutes.\n");
     printf("       YYYYMMDD = Simulated date in year, month, and day of month.\n");
 
     free(sYear);
@@ -90,10 +90,10 @@ int main(int argc, char *argv[])
   UTr = round(60.0 * UTrH);
 
   if (verbose) {
-    printf("Date: %4d-%02d-%02d Time: %02d:%02d ", year, month, day,
+    printf("Date: %4d-%02d-%02d Time: %02d:%02d UTC ", year, month, day,
       (int)(curT / 60.0), (int)round(60 * (curT / 60.0 - floor(curT / 60.0))));
     printf("Twilight duration: %.2fh\n", grayD / 60.0);
-    printf("Grid locator: %s ==> ", grid);
+    printf("Grid locator: %s => ", grid);
     printf("Latitude: %.4f deg. Longitude: %.4f deg.\n", latitude, longitude);
   }
 
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
     else {
 //      printf("CurT: %05.2f normT: %5.2f rDist: %05.2f sDist: %05.2f State: %s\n",
 //        curT / 60.0, normT / 60.0, riseDist / 60.0, setDist / 60.0, state);
-      printf("Sunrise: %02d:%02d Sunset: %02d:%02d\n", 
+      printf("Sunrise: %02d:%02d Sunset: %02d:%02d UTC\n", 
         (int)(UTrH), (int)round(60 * (UTrH - floor(UTrH))),
         (int)(UTsH), (int)round(60 * (UTsH - floor(UTsH))));
       printf("Time from sunrise: %.2fh from sunset: %.2fh\nSolar state: %s\n", 
