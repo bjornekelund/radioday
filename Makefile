@@ -9,3 +9,6 @@ radioday.o : radioday.c sunriset.h
 
 clean:
 	rm -f *.o
+
+lint:
+	cppcheck radioday.c sunriset.c
